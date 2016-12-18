@@ -57,7 +57,7 @@ struct {
 
 
 unsigned int messageLength = 15;
-int textIncrement = -(messageLength * 6);
+int textIncrement = ledsPerStrip;
 char msg[] = "ArthurGuy.co.uk";
 
 void setup() {
@@ -69,7 +69,7 @@ void setup() {
   digitalWrite(INFO_LED, false);
 
   //Update the background animation
-  backgroundUpdateTimer.begin(updateBackground, 25000);
+  backgroundUpdateTimer.begin(updateBackground, 35000);
 
   // Update the position of the various animations
   // The timing here isnt important as long as its fast enough to not miss an update
@@ -132,6 +132,7 @@ void loop() {
           char character = Serial1.read();
           if (character == '*') {
             readingMessage = false;
+            textIncrement = ledsPerStrip; // reset text position to be off the screen
           } else {
             msg[messageLength] = character;
             messageLength++;
@@ -210,10 +211,10 @@ int getRandomLedColour() {
 
 
 void updateBackground() {
-  textIncrement++;
+  textIncrement--;
 
-  if (textIncrement >= ledsPerStrip) {
-    textIncrement = -(messageLength * 6);
+  if (textIncrement < -((int)messageLength * 6)) {
+    textIncrement = ledsPerStrip;
   }
 }
 

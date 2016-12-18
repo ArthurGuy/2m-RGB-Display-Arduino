@@ -1,10 +1,9 @@
 
 
 
-//char msg[] = "* ArthurGuy.co.uk = ";
-//messageLength = 15;
 
-int colour = 100;
+int colour = makeColour(120, 100, 8);
+
 
 void renderText(){
 
@@ -38,7 +37,7 @@ void renderText(){
   }
 
 }
-
+/*
 int stripLookup[8] = {
   ledsPerStrip-1,
   (ledsPerStrip*2)-1,
@@ -72,4 +71,5 @@ void renderVerticalText() {
 
   }
 }
+*/
 
