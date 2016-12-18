@@ -77,7 +77,7 @@ void newSpark(int i, int x, int y) {
   sparkState[i] = true;
 }
 
-//Get the ID of a free slot that can hold a wave
+//Get the ID of a free slot that can hold a spark
 int getFreeSparkSlot() {
     
     //See if any of the wave slots are available

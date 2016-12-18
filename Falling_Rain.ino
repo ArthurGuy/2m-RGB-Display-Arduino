@@ -3,9 +3,10 @@
 
 #define INFO_LED 13
 
-const int numStrips    = 8;
-const int ledsPerStrip = 125;
-const int numSparks    = 100;
+const int numStrips     = 8;
+const int ledsPerStrip  = 125;
+const int numSparks     = 100;
+const int numExplosions = 10;
 
 DMAMEM int displayMemory[ledsPerStrip*6];
 int drawingMemory[ledsPerStrip*6];
@@ -30,11 +31,8 @@ int minBrightness = 2;
 
 int columnCount[numStrips];
 
-//Store the overal state of each spark
+// Store the overal state of each spark
 bool sparkState[numSparks];
-
-int starPosition[2];
-bool starOn = false;
 
 struct {
      int pos;
@@ -46,6 +44,21 @@ struct {
 } spark[numSparks];
 
 
+// Store the overal state of each explosion
+bool explosionState[numExplosions];
+
+struct {
+     int x;
+     int y;
+     int size;
+     int colour;
+     unsigned long lastChange;
+} explosion[numExplosions];
+
+
+unsigned int messageLength = 15;
+int textIncrement = -(messageLength * 6);
+char msg[] = "ArthurGuy.co.uk";
 
 void setup() {
 
@@ -56,17 +69,19 @@ void setup() {
   digitalWrite(INFO_LED, false);
 
   //Update the background animation
-  backgroundUpdateTimer.begin(updateBackground, 40000);
+  backgroundUpdateTimer.begin(updateBackground, 25000);
 
-  //Update the position of the falling pixels
+  // Update the position of the various animations
   // The timing here isnt important as long as its fast enough to not miss an update
-  posUpdateTimer.begin(updateSparkPos, 1000);
+  posUpdateTimer.begin(updateAnimations, 1000);
 
   // Reset the pixel counter for each of the columns
   resetColumnCounters();
 
   // Ensure the sparks are all disabed
   setupSparkSlots();
+
+  setupExplosionSlots();
   
   leds.begin();
 
@@ -86,18 +101,19 @@ void loop() {
     if (Serial1.read() == '*') {
       int startChar = Serial1.read();
 
-      // Star received
-      if (startChar == 'E') {
+      
+      if (startChar == 'E') { // Explosion received
         int x = Serial1.parseInt();
         int y = Serial1.parseInt();
         int endChar = Serial1.read();
         if (endChar == '*') {
           // Valid data received
-          starPosition[0] = x;
-          starPosition[1] = y;
-          starOn = true;
+          int slot = getFreeExplosionSlot();
+          if (slot >= 0) {
+              newExplosion(slot, x, y);
+          }
         }
-      } else if (startChar == 'S') {
+      } else if (startChar == 'S') { // Spark received
         int x = Serial1.parseInt();
         int y = Serial1.parseInt();
         int endChar = Serial1.read();
@@ -108,13 +124,26 @@ void loop() {
               newSpark(slot, x, y);
           }
         }
+      } else if (startChar == 'M') { // Message received
+        Serial1.read(); //Ignore the starting colon
+        bool readingMessage = true;
+        messageLength = 0;
+        while (readingMessage) {
+          char character = Serial1.read();
+          if (character == '*') {
+            readingMessage = false;
+          } else {
+            msg[messageLength] = character;
+            messageLength++;
+          }
+        }
       }
       
     }
 
     //Clear any remaining data
-    while (Serial.available()) {
-      Serial.read();
+    while (Serial1.available()) {
+      Serial1.read();
     }
     
   }
@@ -138,8 +167,7 @@ void loop() {
 
 }
 
-
-
+// Render the current animations to the screen
 void updateLEDs() {
 
   // Clear the screen to begin with
@@ -151,14 +179,26 @@ void updateLEDs() {
   // Display the filling up columns
   renderColumns();
 
-  if (starOn) {
-    drawStar(starPosition[0], starPosition[1], backgroundIncrement, 0);
-  }
+  // Display the explosions on the screen
+  renderExplosions();
+
+  // Display the latest text
+  renderText();
 
   // Now everything is in place update the screen
   leds.show();
 }
 
+
+
+// Update the various animations
+void updateAnimations() {
+  // Move the sparks down the screen depending on their speed
+  updateSparkPos();
+
+  // Update the size of each explosion
+  updateExplosionState();
+}
 
 
 int getRandomLedColour() {
@@ -177,12 +217,10 @@ int getRandomLedColour() {
 
 
 void updateBackground() {
-  backgroundIncrement++;
-  if (backgroundIncrement == 10) {
-    backgroundIncrement = 0;
-    starOn = false;
-    //starPosition[0] = random(0, numStrips+1);
-    //starPosition[1] = random(0, 80);
+  textIncrement++;
+
+  if (textIncrement >= ledsPerStrip) {
+    textIncrement = -(messageLength * 6);
   }
 }
 
