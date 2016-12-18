@@ -138,14 +138,7 @@ void loop() {
           }
         }
       }
-      
     }
-
-    //Clear any remaining data
-    while (Serial1.available()) {
-      Serial1.read();
-    }
-    
   }
 
   //time to run, 4,000 - 10,000 microseconds
