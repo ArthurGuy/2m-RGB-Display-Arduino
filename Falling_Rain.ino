@@ -6,7 +6,7 @@
 const int numStrips     = 8;
 const int ledsPerStrip  = 125;
 const int numSparks     = 100;
-const int numExplosions = 10;
+const int numExplosions = 50;
 
 DMAMEM int displayMemory[ledsPerStrip*6];
 int drawingMemory[ledsPerStrip*6];
@@ -59,6 +59,7 @@ struct {
 unsigned int messageLength = 15;
 int textIncrement = ledsPerStrip;
 char msg[] = "ArthurGuy.co.uk";
+bool textActive = true;
 
 void setup() {
 
@@ -130,12 +131,16 @@ void loop() {
         messageLength = 0;
         while (readingMessage) {
           char character = Serial1.read();
-          if (character == '*') {
-            readingMessage = false;
-            textIncrement = ledsPerStrip; // reset text position to be off the screen
-          } else {
-            msg[messageLength] = character;
-            messageLength++;
+          // Make sure only good characters are passed through
+          if ((character >= 32) && (character < 127)) {
+            if (character == '*') {
+              readingMessage = false;
+              textIncrement = ledsPerStrip; // reset text position to be off the screen
+              textActive = true;
+            } else {
+              msg[messageLength] = character;
+              messageLength++;
+            }
           }
         }
       }
@@ -211,10 +216,13 @@ int getRandomLedColour() {
 
 
 void updateBackground() {
-  textIncrement--;
+  if (textActive) {
+    textIncrement--;
+  }
 
   if (textIncrement < -((int)messageLength * 6)) {
-    textIncrement = ledsPerStrip;
+    //textIncrement = ledsPerStrip;
+    textActive = false;
   }
 }
 
